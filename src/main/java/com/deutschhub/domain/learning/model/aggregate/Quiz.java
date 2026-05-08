@@ -65,6 +65,16 @@ public class Quiz implements Auditable, SoftDeletable {
     }
 
     public void publish() {
+        ensureCanMutateBy(createdBy, false);
+        publishInternal();
+    }
+
+    public void publish(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        publishInternal();
+    }
+
+    private void publishInternal() {
         ensureNotDeleted();
 
         if (questions.isEmpty()) {
@@ -95,6 +105,16 @@ public class Quiz implements Auditable, SoftDeletable {
     }
 
     public void unpublish() {
+        ensureCanMutateBy(createdBy, false);
+        unpublishInternal();
+    }
+
+    public void unpublish(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        unpublishInternal();
+    }
+
+    private void unpublishInternal() {
         if (status != QuizStatus.PUBLISHED) {
             throw new BusinessException(ErrorCode.INVALID_QUIZ_STATE);
         }
@@ -103,6 +123,16 @@ public class Quiz implements Auditable, SoftDeletable {
     }
 
     public void addQuestion(Question question) {
+        ensureCanMutateBy(createdBy, false);
+        addQuestionInternal(question);
+    }
+
+    public void addQuestion(Question question, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        addQuestionInternal(question);
+    }
+
+    private void addQuestionInternal(Question question) {
         ensureNotDeleted();
 
         if (status == QuizStatus.PUBLISHED) {
@@ -116,6 +146,16 @@ public class Quiz implements Auditable, SoftDeletable {
     }
 
     public void removeQuestion(UUID questionId) {
+        ensureCanMutateBy(createdBy, false);
+        removeQuestionInternal(questionId);
+    }
+
+    public void removeQuestion(UUID questionId, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        removeQuestionInternal(questionId);
+    }
+
+    private void removeQuestionInternal(UUID questionId) {
         ensureNotDeleted();
 
         if (status == QuizStatus.PUBLISHED) {
@@ -133,11 +173,31 @@ public class Quiz implements Auditable, SoftDeletable {
     }
 
     public void updateTitle(String title) {
+        ensureCanMutateBy(createdBy, false);
+        updateTitleInternal(title);
+    }
+
+    public void updateTitle(String title, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        updateTitleInternal(title);
+    }
+
+    private void updateTitleInternal(String title) {
         this.title = validateTitle(title);
         this.touch();
     }
 
     public void updateDescription(String description) {
+        ensureCanMutateBy(createdBy, false);
+        updateDescriptionInternal(description);
+    }
+
+    public void updateDescription(String description, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        updateDescriptionInternal(description);
+    }
+
+    private void updateDescriptionInternal(String description) {
         this.description = description != null ? description.trim() : "";
         this.touch();
     }
@@ -218,8 +278,26 @@ public class Quiz implements Auditable, SoftDeletable {
 
     @Override
     public void softDelete() {
+        ensureCanMutateBy(createdBy, false);
+        softDeleteInternal();
+    }
+
+    public void softDelete(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        softDeleteInternal();
+    }
+
+    private void softDeleteInternal() {
         this.deletedAt = LocalDateTime.now();
         this.touch();
+    }
+
+    private void ensureCanMutateBy(UUID actorId, boolean isAdmin) {
+        ensureNotDeleted();
+        if (isAdmin) return;
+        if (actorId == null || !createdBy.equals(actorId)) {
+            throw new BusinessException(ErrorCode.QUIZ_FORBIDDEN_ACTION);
+        }
     }
 
     public UUID getId() {
