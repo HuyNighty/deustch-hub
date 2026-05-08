@@ -29,6 +29,13 @@ public class Certificate implements Auditable {
 
     public static Certificate issue(UUID userId, UUID courseId, boolean courseCompleted,
                                     boolean quizRequirementMet, boolean isQuizRequired) {
+        return issue(userId, courseId, courseCompleted, quizRequirementMet, isQuizRequired, userId, false);
+    }
+
+    public static Certificate issue(UUID userId, UUID courseId, boolean courseCompleted,
+                                    boolean quizRequirementMet, boolean isQuizRequired,
+                                    UUID actorId, boolean isAdmin) {
+        ensureCanIssueFor(userId, actorId, isAdmin);
         if (!courseCompleted) {
             throw new BusinessException(ErrorCode.COURSE_NOT_COMPLETED);
         }
@@ -38,6 +45,15 @@ public class Certificate implements Auditable {
 
         String certNumber = generateCertificateNumber(userId, courseId);
         return new Certificate(UUID.randomUUID(), userId, courseId, LocalDateTime.now(), certNumber);
+    }
+
+    private static void ensureCanIssueFor(UUID userId, UUID actorId, boolean isAdmin) {
+        if (isAdmin) {
+            return;
+        }
+        if (actorId == null || !actorId.equals(userId)) {
+            throw new BusinessException(ErrorCode.CERTIFICATE_FORBIDDEN_ACTION);
+        }
     }
 
     private static String generateCertificateNumber(UUID userId, UUID courseId) {

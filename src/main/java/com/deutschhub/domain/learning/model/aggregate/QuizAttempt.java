@@ -57,6 +57,16 @@ public class QuizAttempt implements Auditable, SoftDeletable {
     }
 
     public void answerQuestion(UserAnswer answer) {
+        ensureCanMutateBy(userId, false);
+        answerQuestionInternal(answer);
+    }
+
+    public void answerQuestion(UserAnswer answer, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        answerQuestionInternal(answer);
+    }
+
+    private void answerQuestionInternal(UserAnswer answer) {
         ensureNotDeleted();
         ensureInProgress();
 
@@ -71,6 +81,16 @@ public class QuizAttempt implements Auditable, SoftDeletable {
     }
 
     public void submit(List<Question> questions) {
+        ensureCanMutateBy(userId, false);
+        submitInternal(questions);
+    }
+
+    public void submit(List<Question> questions, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        submitInternal(questions);
+    }
+
+    private void submitInternal(List<Question> questions) {
         ensureNotDeleted();
         ensureInProgress();
 
@@ -163,8 +183,26 @@ public class QuizAttempt implements Auditable, SoftDeletable {
 
     @Override
     public void softDelete() {
+        ensureCanMutateBy(userId, false);
+        softDeleteInternal();
+    }
+
+    public void softDelete(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        softDeleteInternal();
+    }
+
+    private void softDeleteInternal() {
         this.deletedAt = LocalDateTime.now();
         this.touch();
+    }
+
+    private void ensureCanMutateBy(UUID actorId, boolean isAdmin) {
+        ensureNotDeleted();
+        if (isAdmin) return;
+        if (actorId == null || !userId.equals(actorId)) {
+            throw new BusinessException(ErrorCode.QUIZ_ATTEMPT_FORBIDDEN_ACTION);
+        }
     }
 
     public UUID getId() {

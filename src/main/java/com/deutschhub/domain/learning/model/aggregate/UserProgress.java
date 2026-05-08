@@ -54,6 +54,16 @@ public class UserProgress implements Auditable, SoftDeletable {
     }
 
     public void recordLessonCompletion(int lessonMinutes) {
+        ensureCanMutateBy(userId, false);
+        recordLessonCompletionInternal(lessonMinutes);
+    }
+
+    public void recordLessonCompletion(int lessonMinutes, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        recordLessonCompletionInternal(lessonMinutes);
+    }
+
+    private void recordLessonCompletionInternal(int lessonMinutes) {
         ensureModifiable();
         this.completedLessons++;
         this.totalStudyMinutes += Math.max(0, lessonMinutes);
@@ -74,6 +84,16 @@ public class UserProgress implements Auditable, SoftDeletable {
     }
 
     public void updateProgress(Progress newProgress) {
+        ensureCanMutateBy(userId, false);
+        updateProgressInternal(newProgress);
+    }
+
+    public void updateProgress(Progress newProgress, UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        updateProgressInternal(newProgress);
+    }
+
+    private void updateProgressInternal(Progress newProgress) {
         ensureModifiable();
 
         if (newProgress == null) {
@@ -96,6 +116,16 @@ public class UserProgress implements Auditable, SoftDeletable {
     }
 
     public void markAsCompleted() {
+        ensureCanMutateBy(userId, false);
+        markAsCompletedInternal();
+    }
+
+    public void markAsCompleted(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        markAsCompletedInternal();
+    }
+
+    private void markAsCompletedInternal() {
         ensureModifiable();
         if (this.status == UserProgressStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.USER_PROGRESS_ALREADY_COMPLETED);
@@ -108,6 +138,16 @@ public class UserProgress implements Auditable, SoftDeletable {
     }
 
     public void recordSectionCompletion() {
+        ensureCanMutateBy(userId, false);
+        recordSectionCompletionInternal();
+    }
+
+    public void recordSectionCompletion(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        recordSectionCompletionInternal();
+    }
+
+    private void recordSectionCompletionInternal() {
         this.completedSections++;
         touch();
     }
@@ -149,8 +189,26 @@ public class UserProgress implements Auditable, SoftDeletable {
 
     @Override
     public void softDelete() {
+        ensureCanMutateBy(userId, false);
+        softDeleteInternal();
+    }
+
+    public void softDelete(UUID actorId, boolean isAdmin) {
+        ensureCanMutateBy(actorId, isAdmin);
+        softDeleteInternal();
+    }
+
+    private void softDeleteInternal() {
         this.deletedAt = LocalDateTime.now();
         this.touch();
+    }
+
+    private void ensureCanMutateBy(UUID actorId, boolean isAdmin) {
+        ensureNotDeleted();
+        if (isAdmin) return;
+        if (actorId == null || !userId.equals(actorId)) {
+            throw new BusinessException(ErrorCode.USER_PROGRESS_FORBIDDEN_ACTION);
+        }
     }
 
     @Override
